@@ -1,4 +1,4 @@
-function [out_param] = wav_vs_mp3(in_param)
+function [] = wav_vs_mp3()
 % wav_vs_mp3 helps to do something usefull (fill out)
 %
 % Usage [out_param] = wav_vs_mp3(in_param)
@@ -12,6 +12,12 @@ function [out_param] = wav_vs_mp3(in_param)
 %--------------------------------------------------------------------------
 % Example: Provide example here if applicable (one or two lines) 
 %
+
+% flac tutorial
+% http://xiph.org/flac/documentation_tools_flac.html#tutorial
+
+% mp3 tutorial
+% http://lame.cvs.sourceforge.net/viewvc/lame/lame/USAGE
 
 % Author: Julian Kahnert (c) IHA @ Jade Hochschule applied licence see EOF 
 % Version History:
@@ -29,12 +35,12 @@ fprintf('\n\n\tstart calculation:\n\n')
 szPathPWD = mfilename('fullpath');
 szPathPWD = szPathPWD(1:end-length(mfilename)-1);
 cd(szPathPWD)
+
 delete('*.wav')
-delete('*.mat')
 
-
+bConvert    = 1;    % flac => wav => mp3 => wav
+bWriteFiles = 1;    % write random wav-files to listen in each file
 bPlot       = 0;    % plot spectrogram of each audio file
-bWriteFiles = 0;    % write random wav-files to listen in each file
 bSaveData   = 0;    % saves data in .mat-file (this takes a while)
 
 fs          = [];
@@ -45,7 +51,6 @@ fs          = [];
 %   QUALITY
 %
 %   +0      wav-reference
-%   +1      320kBit/s CBR
 %   0       0, 220-260 kBit/s
 %   3       3, 155-195 kBit/s
 %   6       6,  95-135 kBit/s
@@ -54,26 +59,31 @@ fs          = [];
 % all:
 %   * joint stereo
 %   * speed: standard
-caFiles         = {'+0.wav' '+1.wav' '0.wav' '3.wav' '6.wav' '9.wav' };
-
-caFolderSong    = dir;
-caFolderSong    = {caFolderSong([caFolderSong.isdir]).name};
-caFolderSong    = caFolderSong(3:end);
+caLameOptions   = {'-q 0' '-q 3' '-q 6' '-q 9'};
 
 
-szFolderSong    = caFolderSong{2}; %#% debug, later loop!?
+caFolderSong    = dir('input/*.flac'); %#% not just flacs!?
+caFolderSong    = {caFolderSong(~[caFolderSong.isdir]).name};
 
+if isempty(caFolderSong)
+    error('There is no file in the input folder');
+end
 
+if bConvert
+    wav_to_mp3(caFolderSong{1});
+end
 
-caSignal = read_songs([szPathPWD filesep szFolderSong],caFiles);
+caSignal        = read_songs();
 
+caFiles         = dir(['output' filesep '*.wav']);
+caFiles         = {caFiles.name};
 
 %% write and plot data
 
 if bWriteFiles
     vRand = randperm(length(caFiles));
-    for i = 1:length(caFiles)
-        wavwrite(caSignal{i},fs,num2str(vRand(i)))
+    for k = 1:length(caFiles)
+        wavwrite(caSignal{k},fs,[num2str(vRand(k)) ])
     end
     
     fprintf('Listen to the files and press ENTER afterwards!\n')
@@ -100,12 +110,14 @@ fprintf('\n\n')
 
 %% functions
 
-    function caSignal = read_songs(szPath,caFiles)
-        caSignal = cell(1,length(caFiles));
-        for k = 1:length(caFiles)
-            fprintf('read file: %s\n',caFiles{k})
+    function caSignal = read_songs()
+        stMP3Files = dir(['output' filesep '*.wav']);
+        caSignal = cell(1,length(stMP3Files));
+        
+        for kk = 1:length(stMP3Files)
+            fprintf('read file: %s\n',stMP3Files(kk).name)
 
-            [caSignal{1,k},fs] = wavread([szPath filesep caFiles{k}]);
+            [caSignal{1,kk},fs] = wavread(['output' filesep stMP3Files(kk).name]);
 
         end
     end
@@ -114,17 +126,57 @@ fprintf('\n\n')
         h = figure;
         set(gcf,'Position',[-1908 300 1772 433]);
         
-        for k = 1:length(caFiles)
+        for kk = 1:length(caFiles)
             fprintf('Plotting data! Press ENTER for next plot.\n')
             % semilogx(10*log10(abs(fft(caSignal{1,i}(:,1)))))
-            spectrogram(caSignal{k}(:,1),2^12,0,2^12,fs,'yaxis')
-            title(caFiles{k})
+            spectrogram(caSignal{kk}(:,1),2^12,0,2^12,fs,'yaxis')
+            title(caFiles{kk})
             pause
         end
         delete(h)
     end
 
+    function wav_to_mp3(szFile)
+        try
+            rmdir('output','s');
+        end
+        mkdir('output');
+        
+        % temp file to solve problem with spaces in filename
+        szFileTemp = strrep(szFile,' ','_');
+        
+        copyfile([szPathPWD filesep 'input' filesep szFile],...
+            [szPathPWD filesep 'output' filesep szFileTemp]); %#% just flac
+        cd output;
+        
+        
+        % flac => wav
+        fprintf('\n\t flac => wav \n')
+        szFileOut   = '+0';
+        szCommand   = ['flac -d ' szFileTemp ' -o ' szFileOut '.wav'];
+        fprintf([szCommand '\n'])
+        [~,~] = system(szCommand);
 
+        % wav => mp3
+        fprintf('\n\t wav => mp3 \n')
+        for ca = caLameOptions
+            szCommand = ['lame ' ca{1} ' ' szFileOut '.wav ' strrep(ca{1}(2:end),' ','_') '.mp3'];
+            fprintf([szCommand '\n'])
+            [~,~] = system(szCommand);
+        end
+
+        % mp3 => wav
+        fprintf('\n\t mp3 => wav \n')
+        stMP3Files = dir('*.mp3');
+        for i = 1:length(stMP3Files)
+            szCommand = ['lame --decode ' stMP3Files(i).name ' ' stMP3Files(i).name(1:end-3) 'wav'];
+            fprintf([szCommand '\n'])
+            [~,~] = system(szCommand);
+        end
+
+        delete('*.mp3','*.flac');
+        cd ..
+    end
 end
 %--------------------Licence ----------------------------------------------
 % Copyright (c) <2014> Julian Kahnert
