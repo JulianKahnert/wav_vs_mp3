@@ -32,6 +32,7 @@ function [] = wav_vs_mp3()
 % Version History:
 % Ver. 0.01 initial create                                  02-Feb-2014  JK
 % Ver. 0.10 final fixes for first public release            04-Feb-2014  JK
+% Ver. 0.11 file selection + wav-file input support         04-Feb-2014  JK
 
 %--------------------------------------------------------------------------
 
@@ -50,9 +51,8 @@ try
     rmdir([szPathPWD 'output_rand'],'s');
 end
 
-
 bNewWavs    = 1;    % flac => wav => mp3 => wav
-bWriteFiles = 1;    % write random wav-files to listen in each file
+bWriteFiles = 0;    % write random wav-files to listen in each file
 bPlot       = 0;    % plot spectrogram of each audio file
 bSaveData   = 0;    % saves data in .mat-file (this takes a while)
 
@@ -75,17 +75,36 @@ fs          = [];
 caLameOptions   = {'-b 320' '-V 0' '-V 3' '-V 6' '-V 9'};
 
 
-caFolderSong    = dir([szPathPWD 'input' filesep '*.flac']); %#% not just flacs!?
+caFolderSong    = dir([szPathPWD 'input' filesep '*.flac']);
+caFolderSong    = [caFolderSong; dir([szPathPWD 'input' filesep '*.wav'])];
 caFolderSong    = {caFolderSong(~[caFolderSong.isdir]).name};
 
 if isempty(caFolderSong)
     error('There is no file in the input folder');
+
+elseif length(caFolderSong) > 1
+    fprintf('\nChoose one of the following files:\n\n');
+
+    for ii = 1:length(caFolderSong)
+        fprintf('( %d ) \t %s \n',ii,caFolderSong{ii});
+    end
+
+    sz = input('\nSelect a number and press enter:\n','s');
+    szFileName = caFolderSong{str2double(sz)};
+
+else
+    szFileName = caFolderSong{1};
+
 end
 
-fprintf('song: \t%s\n\n',caFolderSong{1})
+
+szFilePath      = [szPathPWD 'input' filesep szFileName];
+
+fprintf('\n\n##########################################################\n')
+fprintf('song: \t%s\n\n',szFileName)
 
 if bNewWavs
-    wav_to_mp3(caFolderSong{1},caLameOptions);
+    wav_to_mp3(szFilePath,caLameOptions);
 end
 
 caFiles = dir([szPathPWD 'output' filesep '*.wav']);
@@ -180,7 +199,7 @@ fprintf('\n\n')
         delete(h)
     end
 
-    function wav_to_mp3(szFile,caLameOptions)
+    function wav_to_mp3(szFilePath,caLameOptions)
         try
             rmdir([szPathPWD 'output'],'s');
         end
@@ -189,21 +208,25 @@ fprintf('\n\n')
         szPOut = [szPathPWD 'output' filesep];
         
         % temp file to solve problem with spaces in filename
-        szFileTemp = strrep(szFile,' ','_');
-        
-        copyfile([szPathPWD filesep 'input' filesep szFile],...
-            [szPathPWD filesep 'output' filesep szFileTemp]);
+        szFileTemp = strrep(szFilePath(length(szPathPWD)+length('input')+2:end),' ','_');
+        szFileTemp = strrep(szFileTemp,'''','_');
         
         
-        % flac => wav
-        fprintf('\n\t flac => wav \n')
-        
-        szCommand   = ['flac -d ' szPOut szFileTemp ...
-            ' -o '  szPOut 'reference.wav'];
-        
-        fprintf([szCommand '\n'])
-        [~,~] = system(szCommand);
+        if strcmp(szFileTemp(end-2:end),'lac')
+            copyfile(szFilePath,[szPathPWD 'output' filesep szFileTemp]);
+            
+            % flac => wav
+            fprintf('\n\t flac => wav \n')
 
+            szCommand   = ['flac -d ' szPOut szFileTemp ...
+                ' -o '  szPOut 'reference.wav'];
+
+            fprintf([szCommand '\n'])
+            [~,~] = system(szCommand);
+        else
+            copyfile(szFilePath,[szPathPWD 'output' filesep 'reference.wav']);
+        end
+        
         % wav => mp3
         fprintf('\n\t wav => mp3 \n')
         for k = 1:length(caLameOptions)

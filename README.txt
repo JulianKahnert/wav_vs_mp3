@@ -22,9 +22,9 @@ required for the "wav_vs_mp3.m" Matlab-function.
 	* find falc path:
 		which flac
 	* open editor to include path in shell:
-		sudo pico /Applications/MATLAB_R2012a_Student.app/bin/matlab
+		sudo pico /Applications/<MATLAB_VERSION>.app/bin/matlab
 	* include the following line under "#!/bin/sh":
-		export PATH="$PATH:/usr/local/bin"
+		export PATH="$PATH:<PATH_OF_WHICH_LAME/FLAC>"
 
 
 commands:
