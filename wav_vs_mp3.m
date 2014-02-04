@@ -1,27 +1,34 @@
 function [] = wav_vs_mp3()
-% wav_vs_mp3 helps to do something usefull (fill out)
+% WAV_VS_MP3 converts: flac => wav => mp3 => wav
 %
-% Usage [out_param] = wav_vs_mp3(in_param)
+% This might help you to choose the right option for your mp3 encoding.
+%
+% IMPORTANT:
+%   * make sure you have "flac" and "lame" installed
+%   * make sure the path of "flac" and "lame" are in the path of your
+%     matlab shell (read README.txt for further instructions)
 %
 % Input Parameter:
-%	 in_param: 		 Explain the parameter, default values, and units
+%	 no input arguments needed
 %
 % Output Parameter:
-%	 out_param: 	 Explain the parameter, default values, and units
+%	 no output arguments needed
 %
 %--------------------------------------------------------------------------
-% Example: Provide example here if applicable (one or two lines) 
+% Example:
+%   * [] = wav_vs_mp3()
 %
-
+%--------------------------------------------------------------------------
 % flac tutorial
 % http://xiph.org/flac/documentation_tools_flac.html#tutorial
-
+%
 % mp3 tutorial
 % http://lame.cvs.sourceforge.net/viewvc/lame/lame/USAGE
+%
 
 % Author: Julian Kahnert (c) IHA @ Jade Hochschule applied licence see EOF 
 % Version History:
-% Ver. 0.01 initial create (empty) 02-Feb-2014  JK
+% Ver. 0.01 initial create                                  02-Feb-2014  JK
 
 %--------------------------------------------------------------------------
 
@@ -41,8 +48,8 @@ try
 end
 
 
-bNewWavs    = 1;
-bWriteFiles = 0;    % write random wav-files to listen in each file
+bNewWavs    = 1;    % flac => wav => mp3 => wav
+bWriteFiles = 1;    % write random wav-files to listen in each file
 bPlot       = 0;    % plot spectrogram of each audio file
 bSaveData   = 0;    % saves data in .mat-file (this takes a while)
 
@@ -205,7 +212,7 @@ fprintf('\n\n')
             [~,~] = system(szCommand);
         end
 
-        delete([szPOut '*.mp3'],[szPOut '*.flac']);
+%         delete([szPOut '*.mp3'],[szPOut '*.flac']);
     end
 
 end

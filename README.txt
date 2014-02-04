@@ -29,5 +29,5 @@ required for the "wav_vs_mp3.m" Matlab-function.
 
 commands:
 * flac -d Roy.flac
-* lame -q 9  Roy_mp3.wav
+* lame -V 0  Roy_mp3.wav
 * lame --decode file.mp3
