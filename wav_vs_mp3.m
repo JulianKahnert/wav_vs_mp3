@@ -4,6 +4,8 @@ function [] = wav_vs_mp3()
 % This might help you to choose the right option for your mp3 encoding.
 %
 % IMPORTANT:
+%   * make sure there is an "input" folder with a flac in the directory of
+%     WAV_VS_MP3.m
 %   * make sure you have "flac" and "lame" installed
 %   * make sure the path of "flac" and "lame" are in the path of your
 %     matlab shell (read README.txt for further instructions)
@@ -29,6 +31,7 @@ function [] = wav_vs_mp3()
 % Author: Julian Kahnert (c) IHA @ Jade Hochschule applied licence see EOF 
 % Version History:
 % Ver. 0.01 initial create                                  02-Feb-2014  JK
+% Ver. 0.10 final fixes for first public release            04-Feb-2014  JK
 
 %--------------------------------------------------------------------------
 
@@ -91,7 +94,7 @@ caFiles = {caFiles.name};
 %% write and plot data
 
 if bWriteFiles
-    writeRandomFiles();
+    writeRandomFiles(caFiles);
 end
 
 if bPlot
@@ -110,21 +113,30 @@ fprintf('\n\n')
 
 
 %% functions
-    function writeRandomFiles()
+    function writeRandomFiles(caFiles)
         try
             rmdir([szPathPWD 'output_rand'],'s');
         end
         mkdir([szPathPWD 'output_rand']);
 
-        iFID = fopen(['output_rand' filesep 'quality.txt'],'w','n','UTF-8');
+        iFID = fopen([szPathPWD 'output_rand' filesep 'quality.txt'],'w','n','UTF-8');
         fprintf(iFID,'\n\n');
         fprintf(iFID,'####################################################\n');
         fprintf(iFID,'\n\t ###  quality results  ### \n\n\n\n');
-
+        
+        %#% resample workaroung
+        [~,fs_ref] = wavread([szPathPWD 'output' filesep 'reference.wav']);
+        
         vRand = randperm(length(caFiles));
         for k = 1:length(caFiles)
-            [y,fs] = wavread(['output' filesep caFiles{k}]);
-            wavwrite(y,fs,['output_rand' filesep num2str(vRand(k))]);
+            [y,fs] = wavread([szPathPWD 'output' filesep caFiles{k}]);
+            
+            if fs ~= fs_ref
+                y   = resample(y,fs_ref,fs);
+                fs  = fs_ref;
+            end
+            
+            wavwrite(y,fs,[szPathPWD 'output_rand' filesep num2str(vRand(k))]);
             fprintf(iFID,'\t file: %s.wav \t\t quality: %s \n\n',...
                 num2str(vRand(k)),caFiles{k});
         end
@@ -135,19 +147,26 @@ fprintf('\n\n')
         fprintf('Files are in folder "output_rand"!\n')
     end
         
-    function caSignal = read_songs()
+    function [caSignal,fs] = read_songs()
         stMP3Files = dir([szPathPWD 'output' filesep '*.wav']);
         caSignal = cell(1,length(stMP3Files));
+        
+        %#% resample workaroung
+        [~,fs_ref] = wavread([szPathPWD 'output' filesep 'reference.wav']);
         
         for kk = 1:length(stMP3Files)
             fprintf('read file: %s\n',stMP3Files(kk).name)
 
             [caSignal{1,kk},fs] = wavread(['output' filesep stMP3Files(kk).name]);
-
+            if fs ~= fs_ref
+                caSignal{1,kk}   = resample(caSignal{1,kk},fs_ref,fs);
+                fs  = fs_ref;
+            end
+            
         end
     end
 
-    function plotData(caSignal,caFiles)
+    function plotData(caSignal,fs,caFiles)
         h = figure;
         set(gcf,'Position',[-1908 300 1772 433]);
         
@@ -178,10 +197,9 @@ fprintf('\n\n')
         
         % flac => wav
         fprintf('\n\t flac => wav \n')
-        szRef       = 'ref';    % name of reference file
         
         szCommand   = ['flac -d ' szPOut szFileTemp ...
-            ' -o '  szPOut szRef '.wav'];
+            ' -o '  szPOut 'reference.wav'];
         
         fprintf([szCommand '\n'])
         [~,~] = system(szCommand);
@@ -191,7 +209,7 @@ fprintf('\n\n')
         for k = 1:length(caLameOptions)
             
             szCommand = ['lame ' caLameOptions{k} ' ' ...
-                szPOut szRef '.wav ' ...
+                szPOut 'reference.wav ' ...
                 szPOut strrep(caLameOptions{k}(2:end),' ','_') '.mp3'];
             
             fprintf([szCommand '\n'])
@@ -212,7 +230,7 @@ fprintf('\n\n')
             [~,~] = system(szCommand);
         end
 
-%         delete([szPOut '*.mp3'],[szPOut '*.flac']);
+        delete([szPOut '*.mp3'],[szPOut '*.flac']);
     end
 
 end
