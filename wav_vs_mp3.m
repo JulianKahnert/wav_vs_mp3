@@ -27,19 +27,22 @@ function [] = wav_vs_mp3()
 
 clc
 
-fprintf('\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-fprintf('\n\n\tstart calculation:\n\n')
+fprintf('\n\n##########################################################\n')
+fprintf('\n\n\tstart calculation\n\n')
 
 
 %% initials settings
-szPathPWD = mfilename('fullpath');
-szPathPWD = szPathPWD(1:end-length(mfilename)-1);
+szPathPWD   = mfilename('fullpath');
+szPathPWD   = szPathPWD(1:end-length(mfilename));
 cd(szPathPWD)
 
-delete('*.wav')
+try
+    rmdir([szPathPWD 'output_rand'],'s');
+end
 
-bConvert    = 1;    % flac => wav => mp3 => wav
-bWriteFiles = 1;    % write random wav-files to listen in each file
+
+bNewWavs    = 1;
+bWriteFiles = 0;    % write random wav-files to listen in each file
 bPlot       = 0;    % plot spectrogram of each audio file
 bSaveData   = 0;    % saves data in .mat-file (this takes a while)
 
@@ -59,42 +62,33 @@ fs          = [];
 % all:
 %   * joint stereo
 %   * speed: standard
-caLameOptions   = {'-q 0' '-q 3' '-q 6' '-q 9'};
+caLameOptions   = {'-b 320' '-V 0' '-V 3' '-V 6' '-V 9'};
 
 
-caFolderSong    = dir('input/*.flac'); %#% not just flacs!?
+caFolderSong    = dir([szPathPWD 'input' filesep '*.flac']); %#% not just flacs!?
 caFolderSong    = {caFolderSong(~[caFolderSong.isdir]).name};
 
 if isempty(caFolderSong)
     error('There is no file in the input folder');
 end
 
-if bConvert
-    wav_to_mp3(caFolderSong{1});
+fprintf('song: \t%s\n\n',caFolderSong{1})
+
+if bNewWavs
+    wav_to_mp3(caFolderSong{1},caLameOptions);
 end
 
-caSignal        = read_songs();
-
-caFiles         = dir(['output' filesep '*.wav']);
-caFiles         = {caFiles.name};
+caFiles = dir([szPathPWD 'output' filesep '*.wav']);
+caFiles = {caFiles.name};
 
 %% write and plot data
 
 if bWriteFiles
-    vRand = randperm(length(caFiles));
-    for k = 1:length(caFiles)
-        wavwrite(caSignal{k},fs,[num2str(vRand(k)) ])
-    end
-    
-    fprintf('Listen to the files and press ENTER afterwards!\n')
-    pause
-    
-    fprintf('\n\tquality result:\n')
-    fprintf('\nGOOD \t \t \t \t BAD\n')
-    disp(vRand)
+    writeRandomFiles();
 end
 
 if bPlot
+    caSignal = read_songs();
     plotData(caSignal,caFiles)
 end
 
@@ -104,14 +98,38 @@ if bSaveData
     fprintf('\nSaving completed!\n')
 end
 
-fprintf('\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+fprintf('\n\n##########################################################\n')
 fprintf('\n\n')
 
 
 %% functions
+    function writeRandomFiles()
+        try
+            rmdir([szPathPWD 'output_rand'],'s');
+        end
+        mkdir([szPathPWD 'output_rand']);
 
+        iFID = fopen(['output_rand' filesep 'quality.txt'],'w','n','UTF-8');
+        fprintf(iFID,'\n\n');
+        fprintf(iFID,'####################################################\n');
+        fprintf(iFID,'\n\t ###  quality results  ### \n\n\n\n');
+
+        vRand = randperm(length(caFiles));
+        for k = 1:length(caFiles)
+            [y,fs] = wavread(['output' filesep caFiles{k}]);
+            wavwrite(y,fs,['output_rand' filesep num2str(vRand(k))]);
+            fprintf(iFID,'\t file: %s.wav \t\t quality: %s \n\n',...
+                num2str(vRand(k)),caFiles{k});
+        end
+
+        fprintf(iFID,'\n####################################################\n\n\n');
+        fclose(iFID);
+
+        fprintf('Files are in folder "output_rand"!\n')
+    end
+        
     function caSignal = read_songs()
-        stMP3Files = dir(['output' filesep '*.wav']);
+        stMP3Files = dir([szPathPWD 'output' filesep '*.wav']);
         caSignal = cell(1,length(stMP3Files));
         
         for kk = 1:length(stMP3Files)
@@ -136,48 +154,62 @@ fprintf('\n\n')
         delete(h)
     end
 
-    function wav_to_mp3(szFile)
+    function wav_to_mp3(szFile,caLameOptions)
         try
-            rmdir('output','s');
+            rmdir([szPathPWD 'output'],'s');
         end
-        mkdir('output');
+        mkdir([szPathPWD 'output']);
+        
+        szPOut = [szPathPWD 'output' filesep];
         
         % temp file to solve problem with spaces in filename
         szFileTemp = strrep(szFile,' ','_');
         
         copyfile([szPathPWD filesep 'input' filesep szFile],...
-            [szPathPWD filesep 'output' filesep szFileTemp]); %#% just flac
-        cd output;
+            [szPathPWD filesep 'output' filesep szFileTemp]);
         
         
         % flac => wav
         fprintf('\n\t flac => wav \n')
-        szFileOut   = '+0';
-        szCommand   = ['flac -d ' szFileTemp ' -o ' szFileOut '.wav'];
+        szRef       = 'ref';    % name of reference file
+        
+        szCommand   = ['flac -d ' szPOut szFileTemp ...
+            ' -o '  szPOut szRef '.wav'];
+        
         fprintf([szCommand '\n'])
         [~,~] = system(szCommand);
 
         % wav => mp3
         fprintf('\n\t wav => mp3 \n')
-        for ca = caLameOptions
-            szCommand = ['lame ' ca{1} ' ' szFileOut '.wav ' strrep(ca{1}(2:end),' ','_') '.mp3'];
+        for k = 1:length(caLameOptions)
+            
+            szCommand = ['lame ' caLameOptions{k} ' ' ...
+                szPOut szRef '.wav ' ...
+                szPOut strrep(caLameOptions{k}(2:end),' ','_') '.mp3'];
+            
             fprintf([szCommand '\n'])
             [~,~] = system(szCommand);
         end
 
         % mp3 => wav
         fprintf('\n\t mp3 => wav \n')
-        stMP3Files = dir('*.mp3');
+        
+        stMP3Files = dir([szPOut '*.mp3']);
         for i = 1:length(stMP3Files)
-            szCommand = ['lame --decode ' stMP3Files(i).name ' ' stMP3Files(i).name(1:end-3) 'wav'];
+            
+            szCommand = ['lame --decode ' ...
+                szPOut stMP3Files(i).name ' ' ...
+                szPOut stMP3Files(i).name(1:end-3) 'wav'];
+            
             fprintf([szCommand '\n'])
             [~,~] = system(szCommand);
         end
 
-        delete('*.mp3','*.flac');
-        cd ..
+        delete([szPOut '*.mp3'],[szPOut '*.flac']);
     end
+
 end
+
 %--------------------Licence ----------------------------------------------
 % Copyright (c) <2014> Julian Kahnert
 % Institute for Hearing Technology and Audiology
