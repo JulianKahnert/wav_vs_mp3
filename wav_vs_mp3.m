@@ -2,6 +2,7 @@ function [] = wav_vs_mp3()
 % WAV_VS_MP3 converts: flac => wav => mp3 => wav
 %
 % This might help you to choose the right option for your mp3 encoding.
+% Please read the README.txt first!
 %
 % IMPORTANT:
 %   * make sure there is an "input" folder with a flac in the directory of
@@ -52,32 +53,50 @@ try
     rmdir([szPathPWD 'output_rand'],'s');
 end
 
+
+%%%%%% CHANGE HERE THE MAJOR SETTINGS %%%%%%
+% change the following boolean variables to
+% (de)activate the explained functions:
 bNewWavs    = 1;    % flac => wav => mp3 => wav
 bWriteFiles = 1;    % write random wav-files to listen in each file
 bPlot       = 0;    % plot spectrogram of each audio file
-bSaveData   = 0;    % saves data in .mat-file (this takes a while)
+bSaveData   = 0;    % saves data in a "data.mat"-file
+                    % (ATTENTION: This might take a while!)
 
-fs          = [];
 
+% EXTRACT FORM THE LAME ENCODER USAGE TXT:
 
-%% input data
+%> ==========================================
+%> VBR quality setting
+%> ==========================================
+%>  -V n Enable VBR encoding
+%>
+%> Encodes using the VBR algorithm, at the indicated quality.
+%> 0=highest quality, bigger files. 9.999=lowest quality, smaller files.
+%> Decimal values can be specified, like: 4.51
+%>
+%> On average, the resulting bitrates are as follows:
+%> Setting       Average bitrate (kbps)
+%>     0             245
+%>     2             190
+%>     3             175
+%>     4             165
+%>     5             130
+%>
+%> Using -V 7 or higher (lower quality) is not recommended.
+%> ABR usually produces better results. 
 
-%   QUALITY
-%
-%   +0      wav-reference
-%   0       0, 220-260 kBit/s
-%   3       3, 155-195 kBit/s
-%   6       6,  95-135 kBit/s
-%   9       9,  45- 85 kBit/s
-%
-% all:
-%   * joint stereo
-%   * speed: standard
 
 % CHANGES IN THE FOLLOWING LINE MIGHT HAVE AN EFFECT ON THE FUNCTION
 % "wav_to_mp3"! Check out the section which creates two more files.
 caLameOptions   = {'-b 320' '-V 0' '-V 3' '-V 6' '-V 9'};
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% input data
+
+fs = [];
 
 caFolderSong    = dir([szPathPWD 'input' filesep '*.flac']);
 caFolderSong    = [caFolderSong; dir([szPathPWD 'input' filesep '*.wav'])];
