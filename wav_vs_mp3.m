@@ -33,6 +33,7 @@ function [] = wav_vs_mp3()
 % Ver. 0.01 initial create                                  02-Feb-2014  JK
 % Ver. 0.10 final fixes for first public release            04-Feb-2014  JK
 % Ver. 0.11 file selection + wav-file input support         04-Feb-2014  JK
+% Ver. 0.12 add 2 more files with +-1dB RMS in "wav_to_mp3" 11-Feb-2014  JK
 
 %--------------------------------------------------------------------------
 
@@ -52,7 +53,7 @@ try
 end
 
 bNewWavs    = 1;    % flac => wav => mp3 => wav
-bWriteFiles = 0;    % write random wav-files to listen in each file
+bWriteFiles = 1;    % write random wav-files to listen in each file
 bPlot       = 0;    % plot spectrogram of each audio file
 bSaveData   = 0;    % saves data in .mat-file (this takes a while)
 
@@ -72,6 +73,9 @@ fs          = [];
 % all:
 %   * joint stereo
 %   * speed: standard
+
+% CHANGES IN THE FOLLOWING LINE MIGHT HAVE AN EFFECT ON THE FUNCTION
+% "wav_to_mp3"! Check out the section which creates two more files.
 caLameOptions   = {'-b 320' '-V 0' '-V 3' '-V 6' '-V 9'};
 
 
@@ -132,6 +136,7 @@ fprintf('\n\n')
 
 
 %% functions
+
     function writeRandomFiles(caFiles)
         try
             rmdir([szPathPWD 'output_rand'],'s');
@@ -252,12 +257,25 @@ fprintf('\n\n')
             fprintf([szCommand '\n'])
             [~,~] = system(szCommand);
         end
-
+        
+        
+        % Section which creates two more WAV-Files. The adding of +1dB
+        % might result in clipping of the signal.
+        %   * original with -1dB RMS
+        [y, fs] = wavread([szPOut 'reference.wav']);
+        y = y * 10^(-1/20);
+        wavwrite(y,fs,[szPOut 'reference_min1dB.wav']);
+        
+        %   * V 6 with +1dB RMS
+        [y, fs] = wavread([szPOut 'V_6.wav']);
+        y = y * 10^(+1/20);
+        wavwrite(y,fs,[szPOut 'V_6_add1dB.wav']);
+        
         delete([szPOut '*.mp3'],[szPOut '*.flac']);
     end
 
-end
 
+end
 %--------------------Licence ----------------------------------------------
 % Copyright (c) <2014> Julian Kahnert
 % Institute for Hearing Technology and Audiology
