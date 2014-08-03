@@ -56,11 +56,11 @@ wav files, which can be burned on a CD for listening tests.
 		The cellarray contains the parameters for the lame encoder.
 		Each element will create a mp3/wav file.
 		You can change it like it is shown in in the following examples:
-			* add elments:
+			* add elements:
 			{'-V 0' '-V 3'} 		=> {'-b 320' '-V 0' '-V 3'}
 
-			* delete eletems:
-			{'-V 3' '-V 6' '-V 9'} 	=> {'-V 3' '-V 6'}
+			* delete elements:
+			{'-V 3' '-V 6' '-V 9'} 		=> {'-V 3' '-V 6'}
 			
 			* change elements:
 			{'-b 320' '-V 0'} 		=> {'-b 320 -m j' '-V 0'}
@@ -73,7 +73,7 @@ wav files, which can be burned on a CD for listening tests.
 
 ##### INSTALLATION #####
 
-This is a MacOSX installing tutorial for all codecs, which are
+This is a Mac OS X installing tutorial for all codecs, which are
 required for the "wav_vs_mp3.m"-Matlab-function.
 
 1. download and install FLAC library
