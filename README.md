@@ -3,7 +3,7 @@
 *Realise your own **sound quality hearing test**! - Can you here the differences?*
 
 This Matlab function creates wav-files with compare different sound qualities.
-Please read README.md first and contact me at <mailto:JTKahnert@icloud.com> for additional questions.
+Please read README.md first and contact me at <mailto:mail@juliankahnert.de> for additional questions.
 
 ## Usage
 The `wav_vs_mp3.m` Matlab function converts a flac or wav file via different command line orders into MP3-files. These files will be converted with different quality settings, which can manually be changed in the *CHANGE HERE THE MAJOR SETTINGS* section of the Matlab function. After the first conversion the MP3 files will be converted back into wav files, which can be burned on a CD for listening tests.
